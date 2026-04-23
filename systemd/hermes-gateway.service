@@ -1,0 +1,10 @@
+[Unit]
+Description=Hermes Gateway API
+After=network.target
+[Service]
+ExecStart=/home/ducdu/.hermes/hermes-agent/venv/bin/python /home/ducdu/hermes_api.py
+WorkingDirectory=/home/ducdu
+Restart=always
+User=ducdu
+[Install]
+WantedBy=multi-user.target
