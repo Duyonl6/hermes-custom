@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% from "partials/icons.html" import icon, star, avatar %}
+{% from "partials/card.html" import listing_card %}
+{% block title %}{{ profile.name }} · {{ site_name }}{% endblock %}
+{% block content %}
+<div class="wrap wrap--narrow page-pad user-page">
+  <aside class="user-side">
+    <div class="host-card host-card--static">
+      <div class="host-card__id">
+        {{ avatar(profile.name, profile.avatar_hue, 104) }}
+        <b>{{ profile.name }}</b>
+        <span class="host-card__badge">{% if profile.superhost %}{{ icon("medal", 14) }} Chủ thuê siêu cấp{% elif profile.is_host %}Chủ thuê{% else %}Thành viên{% endif %}</span>
+      </div>
+      <dl class="host-card__stats">
+        <div><dt>Đánh giá</dt><dd>{{ review_count }}</dd></div>
+        <div><dt>Xếp hạng</dt><dd>{{ "%.2f"|format(review_avg) | replace(".", ",") }}★</dd></div>
+        <div><dt>Lượt cho thuê</dt><dd>{{ rentals }}</dd></div>
+      </dl>
+    </div>
+    <div class="verify-box">
+      <h3>Đã xác minh</h3>
+      <p>{{ icon("check", 18) if profile.id_verified else icon("x", 18) }} Danh tính (CCCD)</p>
+      <p>{{ icon("check", 18) }} Địa chỉ email</p>
+      <p>{{ icon("check", 18) if profile.phone else icon("x", 18) }} Số điện thoại</p>
+    </div>
+  </aside>
+  <div class="user-main">
+    <h1 class="page-title">Giới thiệu về {{ profile.name }}</h1>
+    {% if profile.city %}<p>{{ icon("pin", 18) }} Sống tại {{ profile.city }}</p>{% endif %}
+    {% if profile.is_host %}<p>{{ icon("clock", 18) }} Phản hồi {{ profile.response_minutes | response_label }}</p>{% endif %}
+    {% if profile.bio %}<p class="host-bio">{{ profile.bio }}</p>{% endif %}
+
+    {% if reviews %}
+    <section class="lp-sec">
+      <h2>Đánh giá về thiết bị của {{ profile.name }}</h2>
+      <div class="row-scroll row-scroll--reviews">
+        {% for r in reviews %}
+        <article class="rv rv--card">
+          <p class="rv__text">“{{ r.comment }}”</p>
+          <header>{{ avatar(r.author_name, r.author_hue, 36) }}<div><b>{{ r.author_name }}</b><small class="muted">{{ r.created_at | time_ago }} · <a href="/listing/{{ r.lid }}">{{ r.listing_title[:32] }}…</a></small></div></header>
+        </article>
+        {% endfor %}
+      </div>
+    </section>
+    {% endif %}
+
+    {% if listings %}
+    <section class="lp-sec">
+      <h2>Thiết bị của {{ profile.name }} ({{ listings|length }})</h2>
+      <div class="grid-listings grid-listings--3">{% for l in listings %}{{ listing_card(l, wishlist_ids) }}{% endfor %}</div>
+    </section>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

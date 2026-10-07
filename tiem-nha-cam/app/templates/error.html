@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% from "partials/icons.html" import icon %}
+{% block title %}{{ title }} · {{ site_name }}{% endblock %}
+{% block content %}
+<div class="wrap wrap--narrow error-page">
+  <div>
+    <p class="error-page__code">{{ code }}</p>
+    <h1>{{ title }}</h1>
+    <p class="muted">{{ message or "Trang bạn tìm có thể đã bị xóa hoặc đường dẫn không đúng." }}</p>
+    <div class="btn-row"><a class="btn btn--dark" href="/">Về trang chủ</a><a class="btn btn--outline" href="/help">Trung tâm trợ giúp</a></div>
+  </div>
+  <img src="{{ art_url('drone:dji:grey', 3, 4) }}" alt="" width="360" height="360">
+</div>
+{% endblock %}

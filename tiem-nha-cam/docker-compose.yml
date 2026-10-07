@@ -1,0 +1,13 @@
+services:
+  web:
+    build: .
+    container_name: tiem-nha-cam
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      DATA_DIR: /app/data
+    volumes:
+      - ./data:/app/data
+    # Chỉ mở ra localhost — nginx trên VPS reverse proxy vào (xem deploy/nginx.conf)
+    ports:
+      - "127.0.0.1:8010:8010"

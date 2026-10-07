@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% from "partials/icons.html" import icon %}
+{% block title %}Đăng nhập · {{ site_name }}{% endblock %}
+{% block body_class %}page-auth{% endblock %}
+{% block content %}
+<div class="auth">
+  <div class="auth__card">
+    <header class="auth__head"><h1>Đăng nhập</h1></header>
+    <div class="auth__body">
+      <h2>Chào mừng bạn đến với {{ site_name }}</h2>
+      {% if error %}<div class="alert alert--error" role="alert">{{ icon("warning", 20) }}<p>{{ error }}</p></div>{% endif %}
+      <form method="post" action="/login" class="stack">
+        <input type="hidden" name="csrf" value="{{ csrf }}">
+        <input type="hidden" name="next" value="{{ next }}">
+        <div class="field-group">
+          <label class="fg-item"><span>Email</span><input type="email" name="email" value="{{ email }}" required autocomplete="email" autofocus></label>
+          <label class="fg-item"><span>Mật khẩu</span><input type="password" name="password" required autocomplete="current-password" minlength="1"></label>
+        </div>
+        <button class="btn btn--brand btn--block btn--lg" type="submit">Tiếp tục</button>
+      </form>
+      <p class="auth__alt">Chưa có tài khoản? <a href="/register?next={{ next | urlencode }}"><u>Đăng ký</u></a></p>
+      {% if demo_mode %}
+      <div class="demo-accounts">
+        <b>Tài khoản demo</b>
+        <button type="button" class="demo-acc" data-fill="khach@demo.vn">{{ icon("user", 18) }}<span><b>Người thuê</b><small>khach@demo.vn · demo1234</small></span></button>
+        <button type="button" class="demo-acc" data-fill="cam@demo.vn">{{ icon("box", 18) }}<span><b>Chủ thuê — Tiệm nhà Cam</b><small>cam@demo.vn · demo1234</small></span></button>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}
+{% block footer %}{% endblock %}

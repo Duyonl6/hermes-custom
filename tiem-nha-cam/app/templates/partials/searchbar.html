@@ -1,0 +1,41 @@
+{% from "partials/icons.html" import icon %}
+{% set qp = request.query_params %}
+<form class="searchbar" action="/" method="get" role="search" data-searchbar>
+  {% if qp.get("category") %}<input type="hidden" name="category" value="{{ qp.get('category') }}">{% endif %}
+  <div class="sb-seg sb-city" data-pop="city">
+    <label class="sb-label" for="sb-city-btn">Địa điểm</label>
+    <button id="sb-city-btn" class="sb-value" type="button" data-pop-btn="city">
+      <span data-city-label>{{ qp.get("city") or "Bạn nhận máy ở đâu?" }}</span>
+    </button>
+    <input type="hidden" name="city" value="{{ qp.get('city', '') }}" data-city-input>
+    <div class="sb-pop sb-pop--city" data-pop-panel="city" hidden>
+      <p class="sb-pop__title">Gợi ý điểm đến</p>
+      <div class="city-grid">
+        <button type="button" class="city-opt" data-city=""><span class="city-ico">{{ icon("globe", 26) }}</span><span><b>Bất kỳ đâu</b><small>Tất cả thành phố</small></span></button>
+        {% for c in cities %}
+        <button type="button" class="city-opt" data-city="{{ c }}"><span class="city-ico">{{ icon("pin", 26) }}</span><span><b>{{ c }}</b><small>{{ {"Hà Nội": "Phố cổ, Hồ Tây, Ba Vì", "TP. Hồ Chí Minh": "Thảo Điền, Quận 1 cũ", "Đà Nẵng": "Biển Mỹ Khê, Hội An", "Lâm Đồng": "Đà Lạt mộng mơ", "Lào Cai": "Sa Pa, Fansipan", "Khánh Hòa": "Lặn biển Nha Trang", "Quảng Ninh": "Vịnh Hạ Long", "An Giang": "Đảo ngọc Phú Quốc"}.get(c, "") }}</small></span></button>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+  <div class="sb-seg sb-dates" data-pop="dates">
+    <label class="sb-label">Nhận máy</label>
+    <button class="sb-value" type="button" data-pop-btn="dates"><span data-start-label>{{ qp.get("start") | fmt_date("dm") if qp.get("start") else "Thêm ngày" }}</span></button>
+  </div>
+  <div class="sb-seg sb-dates" data-pop="dates">
+    <label class="sb-label">Trả máy</label>
+    <button class="sb-value" type="button" data-pop-btn="dates"><span data-end-label>{{ qp.get("end") | fmt_date("dm") if qp.get("end") else "Thêm ngày" }}</span></button>
+  </div>
+  <input type="hidden" name="start" value="{{ qp.get('start', '') }}" data-start-input>
+  <input type="hidden" name="end" value="{{ qp.get('end', '') }}" data-end-input>
+  <div class="sb-pop sb-pop--dates" data-pop-panel="dates" hidden>
+    <div class="rcal" data-search-calendar></div>
+    <div class="sb-pop__foot"><button type="button" class="link-btn" data-clear-dates>Xóa ngày</button><button type="button" class="btn btn--dark btn--sm" data-pop-close>Xong</button></div>
+  </div>
+  <div class="sb-seg sb-q">
+    <label class="sb-label" for="sb-q">Thiết bị</label>
+    <input id="sb-q" class="sb-input" type="search" name="q" value="{{ qp.get('q', '') }}" placeholder="Sony A7 IV, GoPro, Mini 4 Pro…" autocomplete="off" enterkeyhint="search">
+  </div>
+  <button class="sb-submit" type="submit" aria-label="Tìm kiếm">{{ icon("search", 18, stroke=3) }}<span>Tìm kiếm</span></button>
+  <button class="sb-close" type="button" data-close-search aria-label="Đóng tìm kiếm">{{ icon("x", 18) }}</button>
+</form>

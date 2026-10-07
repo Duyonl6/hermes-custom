@@ -1,0 +1,31 @@
+{% from "partials/icons.html" import icon, star %}
+{% macro listing_card(l, wishlist_ids, link_qs="", lazy=True) -%}
+<article class="card" data-id="{{ l.id }}">
+  <a class="card__link" href="/listing/{{ l.id }}{{ ('?' ~ link_qs) if link_qs }}" aria-label="{{ l.title }}"></a>
+  <div class="card__media" data-carousel>
+    <div class="card__track">
+      {% for img in l.images %}
+        <img src="{{ img }}" alt="{{ l.brand }} {{ l.model }} — ảnh {{ loop.index }}" {% if lazy or not loop.first %}loading="lazy"{% endif %} decoding="async" width="500" height="475">
+      {% endfor %}
+    </div>
+    {% if l.guest_favorite %}<span class="card__badge">Khách yêu thích</span>{% elif l.instant_book %}<span class="card__badge card__badge--soft">{{ icon("bolt", 12, stroke=2.4) }} Đặt ngay</span>{% endif %}
+    <button class="heart {{ 'is-saved' if l.id in wishlist_ids }}" type="button" data-wish="{{ l.id }}" aria-pressed="{{ 'true' if l.id in wishlist_ids else 'false' }}" aria-label="Lưu vào danh sách yêu thích">
+      {{ icon("heart", 24, stroke=2) }}
+    </button>
+    {% if l.images|length > 1 %}
+    <button class="card__nav card__nav--prev" type="button" data-dir="-1" aria-label="Ảnh trước">{{ icon("chev-left", 14, stroke=3) }}</button>
+    <button class="card__nav card__nav--next" type="button" data-dir="1" aria-label="Ảnh sau">{{ icon("chev-right", 14, stroke=3) }}</button>
+    <div class="card__dots">{% for img in l.images %}<i class="{{ 'on' if loop.first }}"></i>{% endfor %}</div>
+    {% endif %}
+  </div>
+  <div class="card__body">
+    <div class="card__row">
+      <h3 class="card__title">{{ l.brand }} {{ l.model }}</h3>
+      {% if l.rating_count %}<span class="card__rating">{{ star(12) }} {{ "%.2f"|format(l.rating_avg) | replace(".", ",") }} <span class="muted">({{ l.rating_count }})</span></span>{% else %}<span class="card__rating">{{ star(12) }} Mới</span>{% endif %}
+    </div>
+    <p class="card__sub">{{ l.ward | replace("Phường ", "") | replace("Đặc khu ", "") }}, {{ l.city }}</p>
+    <p class="card__sub">{{ l.host_name }}{% if l.host_superhost %} · Chủ thuê siêu cấp{% endif %}{% if l.delivery %} · Giao tận nơi{% endif %}</p>
+    <p class="card__price"><b>{{ l.price_day | vnd }}</b> <span>/ ngày</span>{% if l.discount_7d %}<span class="card__deal">−{{ l.discount_7d }}% thuê tuần</span>{% endif %}</p>
+  </div>
+</article>
+{%- endmacro %}

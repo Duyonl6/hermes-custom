@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% from "partials/icons.html" import icon, avatar %}
+{% block title %}Tài khoản · {{ site_name }}{% endblock %}
+{% block content %}
+<div class="wrap wrap--form page-pad">
+  <div class="profile-head">
+    {{ avatar(user.name, user.avatar_hue, 72) }}
+    <div>
+      <h1 class="page-title">{{ user.name }}</h1>
+      <p class="muted">{{ user.email }} · tham gia {{ user.created_at[:4] }}{% if user.id_verified %} · {{ icon("id", 14) }} Đã xác minh{% endif %}</p>
+      <a href="/users/{{ user.id }}"><u>Xem hồ sơ công khai</u></a>
+    </div>
+  </div>
+  {% if errors %}<div class="alert alert--error" role="alert">{{ icon("warning", 20) }}<div>{% for e in errors %}<p>{{ e }}</p>{% endfor %}</div></div>{% endif %}
+  <form method="post" action="/account" class="stack">
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+    <section class="co-sec">
+      <h2>Thông tin cá nhân</h2>
+      <label class="field field--block"><span>Họ và tên</span><input name="name" value="{{ user.name }}" required maxlength="60"></label>
+      <label class="field field--block"><span>Số điện thoại / Zalo</span><input name="phone" type="tel" value="{{ user.phone }}"></label>
+      <label class="field field--block"><span>Thành phố</span><select name="city"><option value="">—</option>{% for c in cities_list %}<option {{ "selected" if user.city == c }}>{{ c }}</option>{% endfor %}</select></label>
+      <label class="field field--block"><span>Giới thiệu bản thân</span><textarea name="bio" rows="4" maxlength="600" placeholder="Bạn chụp ảnh thể loại gì? Thường thuê máy để làm gì?">{{ user.bio }}</textarea></label>
+    </section>
+    <section class="co-sec">
+      <h2>Đổi mật khẩu</h2>
+      <label class="field field--block"><span>Mật khẩu hiện tại</span><input type="password" name="current_password" autocomplete="current-password"></label>
+      <label class="field field--block"><span>Mật khẩu mới</span><input type="password" name="new_password" minlength="8" autocomplete="new-password"></label>
+    </section>
+    <button class="btn btn--dark" type="submit">Lưu thay đổi</button>
+  </form>
+</div>
+{% endblock %}

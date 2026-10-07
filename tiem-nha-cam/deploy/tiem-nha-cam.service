@@ -1,0 +1,17 @@
+# Chạy không dùng Docker (cùng kiểu với hermes-gateway.service / discord-bot.service)
+#   sudo cp deploy/tiem-nha-cam.service /etc/systemd/system/
+#   sudo systemctl daemon-reload && sudo systemctl enable --now tiem-nha-cam
+[Unit]
+Description=Tiem nha Cam - marketplace thue may anh
+After=network.target
+
+[Service]
+User=ducdu
+WorkingDirectory=/home/ducdu/hermes-custom/tiem-nha-cam
+EnvironmentFile=/home/ducdu/hermes-custom/tiem-nha-cam/.env
+ExecStart=/home/ducdu/hermes-custom/tiem-nha-cam/.venv/bin/uvicorn app.main:app --host 127.0.0.1 --port 8010 --workers 2 --proxy-headers
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target

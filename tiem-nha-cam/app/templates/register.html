@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% from "partials/icons.html" import icon %}
+{% block title %}Đăng ký · {{ site_name }}{% endblock %}
+{% block body_class %}page-auth{% endblock %}
+{% block content %}
+<div class="auth">
+  <div class="auth__card">
+    <header class="auth__head"><h1>Tạo tài khoản</h1></header>
+    <div class="auth__body">
+      <h2>Thuê máy xịn, đi muôn nơi</h2>
+      {% if errors %}<div class="alert alert--error" role="alert">{{ icon("warning", 20) }}<div>{% for e in errors %}<p>{{ e }}</p>{% endfor %}</div></div>{% endif %}
+      <form method="post" action="/register" class="stack">
+        <input type="hidden" name="csrf" value="{{ csrf }}">
+        <input type="hidden" name="next" value="{{ next }}">
+        <div class="field-group">
+          <label class="fg-item"><span>Họ và tên</span><input name="name" value="{{ form.get('name', '') }}" required maxlength="60" autocomplete="name"></label>
+          <label class="fg-item"><span>Email</span><input type="email" name="email" value="{{ form.get('email', '') }}" required autocomplete="email"></label>
+          <label class="fg-item"><span>Số điện thoại / Zalo (không bắt buộc)</span><input type="tel" name="phone" value="{{ form.get('phone', '') }}" autocomplete="tel"></label>
+          <label class="fg-item"><span>Thành phố</span>
+            <select name="city"><option value="">Chọn thành phố</option>{% for c in cities %}<option {{ "selected" if form.get('city') == c }}>{{ c }}</option>{% endfor %}</select>
+          </label>
+          <label class="fg-item"><span>Mật khẩu (tối thiểu 8 ký tự)</span><input type="password" name="password" required minlength="8" autocomplete="new-password"></label>
+        </div>
+        <label class="check"><input type="checkbox" name="as_host" value="1" {{ "checked" if request.query_params.get("as_host") == "1" or form.get("as_host") }}><span>Tôi muốn cho thuê thiết bị của mình</span></label>
+        <p class="fine muted">Bằng việc đăng ký, bạn đồng ý với <a href="/help#dieu-khoan"><u>Điều khoản</u></a> và <a href="/help#quyen-rieng-tu"><u>Chính sách quyền riêng tư</u></a> của {{ site_name }}.</p>
+        <button class="btn btn--brand btn--block btn--lg" type="submit">Đồng ý và tiếp tục</button>
+      </form>
+      <p class="auth__alt">Đã có tài khoản? <a href="/login?next={{ next | urlencode }}"><u>Đăng nhập</u></a></p>
+    </div>
+  </div>
+</div>
+{% endblock %}
+{% block footer %}{% endblock %}

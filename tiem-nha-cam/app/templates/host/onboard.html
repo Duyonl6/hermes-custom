@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% from "partials/icons.html" import icon %}
+{% block title %}Cho thuê thiết bị của bạn · {{ site_name }}{% endblock %}
+{% block content %}
+<div class="wrap wrap--narrow onboard">
+  <div class="onboard__hero">
+    <div>
+      <h1>Máy nằm tủ chống ẩm?<br><span class="brand-text">Cho thuê, kiếm thêm thu nhập.</span></h1>
+      <p class="lead">Một chiếc Sony A7 IV cho thuê 8 ngày/tháng ở mức 600.000₫/ngày mang về khoảng <b>4,6 triệu₫</b> sau phí nền tảng {{ host_fee_pct|int }}%.</p>
+      <form method="post" action="/host/activate">
+        <input type="hidden" name="csrf" value="{{ csrf }}">
+        <button class="btn btn--brand btn--lg" type="submit">{{ icon("plus", 18) }} Bắt đầu cho thuê</button>
+      </form>
+    </div>
+    <img src="{{ art_url('mirrorless:sony:black', 1, 2) }}" alt="" width="420" height="420">
+  </div>
+  <div class="onboard__steps">
+    <div>{{ icon("edit", 28) }}<b>1. Đăng thiết bị</b><p>Chụp ảnh, nhập thông số, đặt giá theo ngày và mức cọc. Mất khoảng 5 phút.</p></div>
+    <div>{{ icon("calendar", 28) }}<b>2. Quản lý lịch</b><p>Duyệt yêu cầu hoặc bật Đặt ngay. Khóa lịch những ngày bạn cần dùng máy.</p></div>
+    <div>{{ icon("shield", 28) }}<b>3. Bàn giao an toàn</b><p>Kiểm tra CCCD, giữ cọc, ký biên bản có ảnh tình trạng máy. Nhận tiền ngay.</p></div>
+  </div>
+</div>
+{% endblock %}

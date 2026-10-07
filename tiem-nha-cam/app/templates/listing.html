@@ -1,0 +1,309 @@
+{% extends "base.html" %}
+{% from "partials/icons.html" import icon, star, avatar %}
+{% from "partials/card.html" import listing_card %}
+{% block title %}{{ listing.title }} · {{ site_name }}{% endblock %}
+{% block description %}Thuê {{ listing.brand }} {{ listing.model }} tại {{ listing.ward }}, {{ listing.city }} — {{ listing.price_day | vnd }}/ngày. {{ listing.description[:120] }}{% endblock %}
+{% block og %}<meta property="og:image" content="{{ images[0] }}">{% endblock %}
+{% block body_class %}page-listing{% endblock %}
+{% block head %}<link rel="stylesheet" href="/static/vendor/leaflet/leaflet.css">{% endblock %}
+
+{% block content %}
+<div class="wrap wrap--narrow lp">
+  <div class="lp-head">
+    <h1>{{ listing.title }}</h1>
+    <div class="lp-actions">
+      <button class="ghost-btn" type="button" data-share>{{ icon("share", 16) }} <u>Chia sẻ</u></button>
+      <button class="ghost-btn heart-inline {{ 'is-saved' if listing.id in wishlist_ids }}" type="button" data-wish="{{ listing.id }}" aria-pressed="{{ 'true' if listing.id in wishlist_ids else 'false' }}">{{ icon("heart", 16, stroke=2) }} <u>Lưu</u></button>
+    </div>
+  </div>
+
+  <div class="gallery" data-gallery>
+    {% for img in images[:5] %}
+      <button class="gallery__item gallery__item--{{ loop.index }}" type="button" data-photo="{{ loop.index0 }}" aria-label="Xem ảnh {{ loop.index }}">
+        <img src="{{ img }}" alt="{{ listing.brand }} {{ listing.model }} — ảnh {{ loop.index }}" {% if not loop.first %}loading="lazy"{% endif %}>
+      </button>
+    {% endfor %}
+    <button class="gallery__all" type="button" data-photo="0">{{ icon("grid", 16) }} Hiển thị tất cả ảnh</button>
+    <span class="gallery__count" aria-hidden="true">1 / {{ images|length }}</span>
+  </div>
+
+  <div class="lp-body">
+    <div class="lp-main">
+      <section class="lp-intro">
+        <div>
+          <h2>{{ listing.brand }} {{ listing.model }} · {{ listing.ward | replace("Phường ", "") }}, {{ listing.city }}</h2>
+          <p class="muted">{% if listing.kit %}{{ listing.kit }} · {% endif %}Tình trạng: {{ listing.condition }}{% if listing.weight_g %} · {{ listing.weight_g }} g{% endif %}</p>
+          <p class="lp-rating">
+            {% if listing.rating_count %}{{ star(14) }} <b>{{ "%.2f"|format(listing.rating_avg) | replace(".", ",") }}</b> · <a href="#reviews"><u>{{ listing.rating_count }} đánh giá</u></a>{% else %}{{ star(14) }} <b>Tin mới</b>{% endif %}
+          </p>
+        </div>
+      </section>
+
+      {% if listing.guest_favorite %}
+      <section class="fav-banner">
+        <div class="fav-banner__badge"><svg class="laurel" width="26" height="40" viewBox="0 0 26 40" fill="currentColor" aria-hidden="true"><path d="M20 38c-7-3-12-10-12-19 0-6 2-11 6-16-2 6-2 12 0 17 2 6 5 11 8 15l-2 3Z"/><ellipse cx="6" cy="27" rx="5" ry="2.6" transform="rotate(-40 6 27)"/><ellipse cx="4" cy="19" rx="4.6" ry="2.4" transform="rotate(-80 4 19)"/><ellipse cx="6" cy="11" rx="4.2" ry="2.2" transform="rotate(-115 6 11)"/><ellipse cx="11" cy="33" rx="5" ry="2.4" transform="rotate(-10 11 33)"/></svg><b>Khách<br>yêu thích</b><svg class="laurel laurel--r" width="26" height="40" viewBox="0 0 26 40" fill="currentColor" aria-hidden="true"><path d="M20 38c-7-3-12-10-12-19 0-6 2-11 6-16-2 6-2 12 0 17 2 6 5 11 8 15l-2 3Z"/><ellipse cx="6" cy="27" rx="5" ry="2.6" transform="rotate(-40 6 27)"/><ellipse cx="4" cy="19" rx="4.6" ry="2.4" transform="rotate(-80 4 19)"/><ellipse cx="6" cy="11" rx="4.2" ry="2.2" transform="rotate(-115 6 11)"/><ellipse cx="11" cy="33" rx="5" ry="2.4" transform="rotate(-10 11 33)"/></svg></div>
+        <p>Một trong những thiết bị được yêu thích nhất trên {{ site_name }} dựa trên điểm đánh giá, nhận xét và độ tin cậy.</p>
+        <div class="fav-banner__stat"><b>{{ "%.2f"|format(listing.rating_avg) | replace(".", ",") }}</b><span class="stars">{% for i in range(5) %}{{ star(10) }}{% endfor %}</span></div>
+        <div class="fav-banner__stat"><b>{{ listing.rating_count }}</b><a href="#reviews"><u>đánh giá</u></a></div>
+      </section>
+      {% endif %}
+
+      <section class="lp-host-line">
+        <a href="/users/{{ host.id }}">{{ avatar(host.name, host.avatar_hue, 44) }}</a>
+        <div>
+          <b>Chủ thuê: {{ host.name }}</b>
+          <p class="muted">{% if host.superhost %}Chủ thuê siêu cấp · {% endif %}{{ ((today[:4]|int) - (host.created_at[:4]|int)) or 1 }} năm cho thuê</p>
+        </div>
+      </section>
+
+      <section class="highlights">
+        {% if listing.instant_book %}
+        <div class="hl">{{ icon("bolt", 26) }}<div><b>Đặt ngay, không chờ duyệt</b><p>Chọn ngày và xác nhận tức thì — phù hợp khi bạn cần máy gấp.</p></div></div>
+        {% else %}
+        <div class="hl">{{ icon("chat", 26) }}<div><b>Chủ thuê duyệt trong 24 giờ</b><p>Gửi yêu cầu kèm lời nhắn, {{ host.name }} thường phản hồi {{ host.response_minutes | response_label }}.</p></div></div>
+        {% endif %}
+        {% if listing.delivery %}
+        <div class="hl">{{ icon("truck", 26) }}<div><b>Giao tận nơi{% if listing.delivery_fee %} · {{ listing.delivery_fee | vnd }}{% else %} miễn phí{% endif %}</b><p>Nhận máy tại khách sạn, nhà riêng hoặc văn phòng trong khu vực {{ listing.city }}.</p></div></div>
+        {% endif %}
+        {% if host.superhost %}
+        <div class="hl">{{ icon("medal", 26) }}<div><b>{{ host.name }} là Chủ thuê siêu cấp</b><p>Chủ thuê có kinh nghiệm, được đánh giá cao và luôn giao máy đúng hẹn.</p></div></div>
+        {% endif %}
+        {% if drone_exempt %}
+        <div class="hl">{{ icon("drone-law", 26) }}<div><b>Dưới 250 g — miễn giấy phép bay giải trí</b><p>Vẫn phải bay ngoài khu vực cấm, trong tầm nhìn và đăng ký định danh theo quy định. <a href="/help#flycam"><u>Xem luật bay 2026</u></a></p></div></div>
+        {% elif listing.category == "drone" %}
+        <div class="hl">{{ icon("warning", 26) }}<div><b>Flycam từ 250 g — cần giấy phép bay</b><p>Người điều khiển cần giấy phép điều khiển bay và xin phép bay theo NĐ 288/2025. <a href="/help#flycam"><u>Tìm hiểu thêm</u></a></p></div></div>
+        {% endif %}
+        <div class="hl">{{ icon("calendar", 26) }}<div><b>Hủy {{ policy.name | lower }}</b><p>{{ policy.summary }}</p></div></div>
+      </section>
+
+      <section class="lp-desc">
+        <div class="clamp" data-clamp>
+          {% for para in listing.description.split("\n\n") %}<p>{{ para }}</p>{% endfor %}
+        </div>
+        <button class="link-btn" type="button" data-clamp-btn>Hiển thị thêm {{ icon("chev-right", 14, stroke=2.4) }}</button>
+      </section>
+
+      {% if listing.specs %}
+      <section class="lp-sec">
+        <h2>Thông số kỹ thuật</h2>
+        <dl class="specs">
+          {% for k, v in listing.specs %}<div><dt>{{ k }}</dt><dd>{{ v }}</dd></div>{% endfor %}
+        </dl>
+      </section>
+      {% endif %}
+
+      <section class="lp-sec">
+        <h2>Trong bộ cho thuê có gì</h2>
+        <ul class="included">
+          {% for item in listing.included %}
+            {% set low = item | lower %}
+            <li>{{ icon("battery" if "pin" in low else "card" if "thẻ" in low else "box" if ("túi" in low or "balo" in low or "hộp" in low) else "check", 24) }}<span>{{ item }}</span></li>
+          {% endfor %}
+        </ul>
+        <div class="deposit-note">
+          {{ icon("shield", 22) }}
+          <p><b>Tiền cọc {{ listing.deposit | vnd }}</b> — đóng khi nhận máy và hoàn lại ngay khi trả máy nguyên vẹn{% if listing.retail_value %} (giá trị thiết bị tham khảo ~{{ listing.retail_value | vnd }}){% endif %}. Kèm CCCD/hộ chiếu bản gốc để đối chiếu.</p>
+        </div>
+      </section>
+
+      <section class="lp-sec" id="dates">
+        <h2 data-cal-title>Chọn ngày nhận máy</h2>
+        <p class="muted" data-cal-sub>Thêm ngày thuê để xem tổng giá chính xác</p>
+        <div class="rcal rcal--inline" data-inline-calendar></div>
+        <div class="cal-foot"><span class="legend"><i class="legend__busy"></i> Đã có người thuê</span><button class="link-btn" type="button" data-clear-booking>Xóa ngày</button></div>
+      </section>
+    </div>
+
+    <aside class="lp-side">
+      {% if is_owner %}
+      <div class="bk-card">
+        <h3>Đây là tin đăng của bạn</h3>
+        <p class="muted">{{ "Đang hiển thị" if listing.active else "Đang tạm ẩn" }} trên trang khám phá.</p>
+        <a class="btn btn--dark btn--block" href="/host/listings/{{ listing.id }}/edit">{{ icon("edit", 16) }} Sửa tin đăng</a>
+        <a class="btn btn--outline btn--block" href="/host">Về trang quản lý</a>
+      </div>
+      {% else %}
+      <div class="bk-card" id="book" data-booking='{{ booking_json }}' data-pre-start="{{ pre_start }}" data-pre-end="{{ pre_end }}">
+        <div class="bk-head">
+          <p class="bk-price"><b data-bk-total-price>{{ listing.price_day | vnd }}</b> <span data-bk-unit>/ ngày</span></p>
+          {% if listing.discount_3d or listing.discount_7d %}<p class="bk-deal">{{ icon("tag", 14) }} Giảm {{ listing.discount_3d }}% từ 3 ngày · {{ listing.discount_7d }}% từ 7 ngày</p>{% endif %}
+        </div>
+        <form action="/book/{{ listing.id }}" method="get" data-bk-form>
+          <div class="bk-box">
+            <button class="bk-dates" type="button" data-bk-open aria-haspopup="dialog">
+              <span class="bk-date"><small>NHẬN MÁY</small><span data-bk-start>Thêm ngày</span></span>
+              <span class="bk-date"><small>TRẢ MÁY</small><span data-bk-end>Thêm ngày</span></span>
+            </button>
+            {% if listing.delivery %}
+            <label class="bk-opt"><span><small>GIAO NHẬN</small>Giao tận nơi (+{{ listing.delivery_fee | vnd }})</span><input type="checkbox" class="switch" name="delivery" value="1" data-bk-delivery></label>
+            {% endif %}
+          </div>
+          <input type="hidden" name="start" data-bk-start-input>
+          <input type="hidden" name="end" data-bk-end-input>
+          <div class="bk-pop" data-bk-pop hidden>
+            <div class="bk-pop__head"><div><b data-bk-pop-title>Chọn ngày</b><p class="muted" data-bk-pop-sub>Tối thiểu {{ listing.min_days }} ngày</p></div></div>
+            <div class="rcal" data-bk-calendar></div>
+            <div class="bk-pop__foot"><button type="button" class="link-btn" data-clear-booking>Xóa ngày</button><button type="button" class="btn btn--dark btn--sm" data-bk-close>Đóng</button></div>
+          </div>
+          <button class="btn btn--brand btn--block btn--lg" type="submit" data-bk-submit data-label-instant="Đặt thuê" data-label-request="Yêu cầu đặt thuê" data-instant="{{ listing.instant_book }}">Kiểm tra lịch trống</button>
+          <p class="bk-note muted" data-bk-note hidden>Bạn chưa bị trừ tiền ở bước này</p>
+          <div class="bk-lines" data-bk-lines hidden>
+            <div><u data-bk-l-days></u><span data-bk-subtotal></span></div>
+            <div class="green" data-bk-row-discount hidden><span data-bk-l-discount></span><span data-bk-discount></span></div>
+            <div data-bk-row-delivery hidden><u>Phí giao máy</u><span data-bk-delivery-fee></span></div>
+            <div><u title="Phí vận hành nền tảng, bảo vệ đơn thuê">Phí dịch vụ {{ service_fee_pct|int }}%</u><span data-bk-service></span></div>
+            <div class="bk-total"><b>Tổng thanh toán</b><b data-bk-total></b></div>
+            <div class="muted"><span>Tiền cọc (hoàn lại)</span><span>{{ listing.deposit | vnd }}</span></div>
+          </div>
+        </form>
+      </div>
+      <p class="bk-report muted">{{ icon("shield", 16) }} Thanh toán và nhắn tin qua {{ site_name }} để được bảo vệ đơn thuê.</p>
+      {% endif %}
+    </aside>
+  </div>
+
+  <section class="lp-sec lp-reviews" id="reviews">
+    {% if reviews %}
+    <div class="rv-head">
+      <h2>{{ star(22) }} {{ "%.2f"|format(listing.rating_avg) | replace(".", ",") }} · {{ listing.rating_count }} đánh giá</h2>
+    </div>
+    <div class="rv-summary">
+      <div class="rv-dist">
+        <b>Xếp hạng tổng thể</b>
+        {% for s, n in star_dist.items() %}
+        <div class="rv-dist__row"><span>{{ s }}</span><i><b style="width:{{ (n / reviews|length * 100) | round(1) }}%"></b></i></div>
+        {% endfor %}
+      </div>
+      {% for label, ico, score in cat_scores %}
+      <div class="rv-cat"><span>{{ label }}</span><b>{{ "%.1f"|format(score) | replace(".", ",") }}</b>{{ icon(ico, 30, stroke=1.4) }}</div>
+      {% endfor %}
+    </div>
+    <div class="rv-grid">
+      {% for r in reviews[:6] %}
+      <article class="rv">
+        <header>{{ avatar(r.author_name, r.author_hue, 44) }}<div><b>{{ r.author_name }}</b><small class="muted">{{ r.author_city or "Việt Nam" }}</small></div></header>
+        <p class="rv__meta"><span class="stars">{% for i in range(r.rating) %}{{ star(9) }}{% endfor %}</span> · <b>{{ r.created_at | time_ago }}</b></p>
+        <p class="rv__text">{{ r.comment }}</p>
+      </article>
+      {% endfor %}
+    </div>
+    {% if reviews|length > 6 %}
+    <button class="btn btn--outline" type="button" data-open-modal="all-reviews">Hiển thị tất cả {{ listing.rating_count }} đánh giá</button>
+    {% endif %}
+    {% else %}
+    <h2>{{ star(22) }} Chưa có đánh giá</h2>
+    <p class="muted">Hãy là người đầu tiên thuê và chia sẻ trải nghiệm nhé!</p>
+    {% endif %}
+  </section>
+
+  <section class="lp-sec">
+    <h2>Nơi nhận máy</h2>
+    <p>{{ listing.ward }}, {{ listing.city }}</p>
+    <div class="map map--listing" id="listing-map" data-lat="{{ listing.lat }}" data-lng="{{ listing.lng }}" data-tiles="{{ tile_url }}" data-attr="{{ tile_attribution }}"></div>
+    <p class="muted small">Vị trí trên bản đồ là khu vực gần đúng. Địa chỉ bàn giao chính xác được gửi sau khi đơn thuê được xác nhận.</p>
+  </section>
+
+  <section class="lp-sec host-sec">
+    <h2>Gặp gỡ chủ thuê</h2>
+    <div class="host-wrap">
+      <a class="host-card" href="/users/{{ host.id }}">
+        <div class="host-card__id">
+          {{ avatar(host.name, host.avatar_hue, 96) }}
+          <b>{{ host.name }}</b>
+          {% if host.superhost %}<span class="host-card__badge">{{ icon("medal", 14) }} Chủ thuê siêu cấp</span>{% endif %}
+        </div>
+        <dl class="host-card__stats">
+          <div><dt>Đánh giá</dt><dd>{{ host_stats.reviews }}</dd></div>
+          <div><dt>Xếp hạng</dt><dd>{{ "%.2f"|format(host_stats.rating) | replace(".", ",") }}★</dd></div>
+          <div><dt>Thiết bị</dt><dd>{{ host_stats.listings }}</dd></div>
+        </dl>
+      </a>
+      <div class="host-info">
+        {% if host.id_verified %}<p>{{ icon("id", 20) }} Đã xác minh danh tính (CCCD)</p>{% endif %}
+        <p>{{ icon("clock", 20) }} Thường phản hồi {{ host.response_minutes | response_label }}</p>
+        <p class="host-bio">{{ host.bio }}</p>
+        <a class="btn btn--dark" href="/users/{{ host.id }}">Xem hồ sơ chủ thuê</a>
+        <p class="muted small">{{ icon("shield", 16) }} Để bảo vệ giao dịch, đừng chuyển tiền hay trao đổi ngoài nền tảng trước khi đơn được xác nhận.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="lp-sec">
+    <h2>Những điều cần biết</h2>
+    <div class="things">
+      <div>
+        <h3>Quy định thuê</h3>
+        <p>Xuất trình CCCD/hộ chiếu bản gốc khi nhận máy</p>
+        <p>1 ngày thuê = 24 giờ kể từ giờ nhận máy</p>
+        <p>Trả trễ: phụ thu 30%/ngày trong 6 giờ đầu, quá 6 giờ tính thêm 1 ngày</p>
+        <p>Kiểm tra máy & ký biên bản bàn giao 2 chiều</p>
+      </div>
+      <div>
+        <h3>An toàn & bảo vệ thiết bị</h3>
+        {% if listing.category == "drone" %}
+        <p>Không bay khu vực cấm/hạn chế (sân bay, khu quân sự, sự kiện lớn)</p>
+        <p>Không bay khi có cồn trong người (NĐ 288/2025)</p>
+        <p>Rơi vỡ do lỗi điều khiển: bồi thường theo chi phí sửa chính hãng</p>
+        {% elif listing.category in ["action", "cam360"] %}
+        <p>Kiểm tra gioăng chống nước trước khi xuống biển</p>
+        <p>Rửa nước ngọt sau khi dùng ở biển</p>
+        <p>Mất/hỏng phụ kiện: bồi thường theo giá niêm yết</p>
+        {% else %}
+        <p>Không tháo ống kính ngoài trời gió bụi, mưa</p>
+        <p>Không tự vệ sinh cảm biến</p>
+        <p>Hư hỏng do sử dụng: bồi thường theo chi phí sửa chính hãng</p>
+        {% endif %}
+      </div>
+      <div>
+        <h3>Chính sách hủy: {{ policy.name }}</h3>
+        <p>{{ policy.detail }}</p>
+        <p>Đơn chờ duyệt bị hủy hoặc bị từ chối được hoàn 100%.</p>
+        <a href="/help#chinh-sach-huy"><u>Tìm hiểu thêm</u></a>
+      </div>
+    </div>
+  </section>
+
+  {% if similar %}
+  <section class="lp-sec">
+    <h2>{{ category_labels[listing.category] }} khác được đánh giá cao</h2>
+    <div class="row-scroll">
+      {% for l in similar %}{{ listing_card(l, wishlist_ids) }}{% endfor %}
+    </div>
+  </section>
+  {% endif %}
+</div>
+
+{% if not is_owner %}
+<div class="bk-bar">
+  <div><b data-bar-price>{{ listing.price_day | vnd }}</b> <span data-bar-unit>/ ngày</span><small data-bar-dates class="muted">Chọn ngày để xem tổng giá</small></div>
+  <button class="btn btn--brand" type="button" data-bar-cta>Chọn ngày</button>
+</div>
+{% endif %}
+
+<dialog class="modal modal--photos" id="photos" aria-label="Tất cả ảnh">
+  <header class="modal__head modal__head--sticky"><button type="button" class="icon-btn" data-close-modal aria-label="Đóng">{{ icon("chev-left", 18, stroke=2.2) }}</button><span class="muted" data-photo-counter></span><span></span></header>
+  <div class="photos-list">
+    {% for img in images %}<img id="photo-{{ loop.index0 }}" src="{{ img }}" alt="{{ listing.brand }} {{ listing.model }} — ảnh {{ loop.index }}" loading="lazy">{% endfor %}
+  </div>
+</dialog>
+
+{% if reviews|length > 6 %}
+<dialog class="modal modal--reviews" id="all-reviews" aria-labelledby="all-reviews-title">
+  <header class="modal__head"><button type="button" class="icon-btn" data-close-modal aria-label="Đóng">{{ icon("x", 18, stroke=2.2) }}</button><h2 id="all-reviews-title">{{ listing.rating_count }} đánh giá</h2><span></span></header>
+  <div class="modal__body">
+    {% for r in reviews %}
+    <article class="rv rv--full">
+      <header>{{ avatar(r.author_name, r.author_hue, 40) }}<div><b>{{ r.author_name }}</b><small class="muted">{{ r.created_at | time_ago }}</small></div></header>
+      <p class="rv__meta"><span class="stars">{% for i in range(r.rating) %}{{ star(9) }}{% endfor %}</span></p>
+      <p>{{ r.comment }}</p>
+    </article>
+    {% endfor %}
+  </div>
+</dialog>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script src="/static/vendor/leaflet/leaflet.js" defer></script>
+<script src="/static/js/listing.js?v={{ static_v }}" defer></script>
+{% endblock %}

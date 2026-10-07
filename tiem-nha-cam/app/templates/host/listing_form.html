@@ -1,0 +1,138 @@
+{% extends "base.html" %}
+{% from "partials/icons.html" import icon %}
+{% block title %}{{ "Sửa tin đăng" if listing_id else "Đăng thiết bị mới" }} · {{ site_name }}{% endblock %}
+{% block head %}<link rel="stylesheet" href="/static/vendor/leaflet/leaflet.css">{% endblock %}
+{% block content %}
+<div class="wrap wrap--form page-pad lform">
+  <a class="back-link" href="/host">{{ icon("chev-left", 16, stroke=2.4) }} Quản lý cho thuê</a>
+  <div class="lform__head">
+    <h1 class="page-title">{{ "Sửa tin đăng" if listing_id else "Đăng thiết bị mới" }}</h1>
+    {% if listing_id %}<a class="btn btn--outline btn--sm" href="/listing/{{ listing_id }}" target="_blank">{{ icon("eye", 16) }} Xem tin</a>{% endif %}
+  </div>
+  {% if errors %}<div class="alert alert--error" role="alert">{{ icon("warning", 20) }}<div>{% for e in errors %}<p>{{ e }}</p>{% endfor %}</div></div>{% endif %}
+
+  <form method="post" enctype="multipart/form-data" action="{{ '/host/listings/' ~ listing_id ~ '/edit' if listing_id else '/host/listings/new' }}" class="stack" data-listing-form>
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+
+    <section class="co-sec">
+      <h2>Thiết bị</h2>
+      <label class="field field--block"><span>Tiêu đề tin (10–100 ký tự)</span><input name="title" value="{{ lf.title }}" required minlength="10" maxlength="100" placeholder="VD: Sony A7 IV body — sẵn sàng chụp cưới, sự kiện"></label>
+      <div class="field-row">
+        <label class="field"><span>Danh mục</span><select name="category">{% for key, label, _ in categories %}<option value="{{ key }}" {{ "selected" if lf.category == key }}>{{ label }}</option>{% endfor %}</select></label>
+        <label class="field"><span>Hãng</span><input name="brand" value="{{ lf.brand }}" required list="brands" placeholder="Sony, Canon, DJI…"></label>
+        <datalist id="brands"><option>Sony</option><option>Canon</option><option>Fujifilm</option><option>Nikon</option><option>DJI</option><option>GoPro</option><option>Insta360</option><option>Olympus</option></datalist>
+      </div>
+      <div class="field-row">
+        <label class="field"><span>Model</span><input name="model" value="{{ lf.model }}" required placeholder="Alpha A7 IV"></label>
+        <label class="field"><span>Gói / phụ kiện nổi bật</span><input name="kit" value="{{ lf.kit }}" placeholder="Body + 2 pin, Fly More Combo…"></label>
+      </div>
+      <div class="field-row">
+        <label class="field"><span>Tình trạng</span><select name="condition">{% for c in conditions %}<option {{ "selected" if lf.condition == c }}>{{ c }}</option>{% endfor %}</select></label>
+        <label class="field"><span>Trọng lượng (g) — quan trọng với flycam</span><input name="weight_g" inputmode="numeric" value="{{ lf.weight_g or '' }}" placeholder="249"></label>
+      </div>
+      <label class="field field--block"><span>Mô tả</span><textarea name="description" rows="6" required minlength="30" maxlength="5000" placeholder="Máy mua năm nào, số shot, vệ sinh cảm biến gần nhất, phù hợp chụp gì…">{{ lf.description }}</textarea></label>
+    </section>
+
+    <section class="co-sec">
+      <h2>Giá & cọc</h2>
+      <div class="field-row">
+        <label class="field"><span>Giá thuê/ngày (₫)</span><input name="price_day" inputmode="numeric" value="{{ lf.price_day }}" required data-money></label>
+        <label class="field"><span>Tiền cọc (₫)</span><input name="deposit" inputmode="numeric" value="{{ lf.deposit }}" data-money></label>
+      </div>
+      <div class="field-row">
+        <label class="field"><span>Giảm từ 3 ngày (%)</span><input name="discount_3d" type="number" min="0" max="50" value="{{ lf.discount_3d }}"></label>
+        <label class="field"><span>Giảm từ 7 ngày (%)</span><input name="discount_7d" type="number" min="0" max="70" value="{{ lf.discount_7d }}"></label>
+        <label class="field"><span>Giá trị máy (₫, để tính bồi thường)</span><input name="retail_value" inputmode="numeric" value="{{ lf.retail_value or '' }}" data-money></label>
+      </div>
+      <p class="muted small" data-earn-hint>Gợi ý: xem <a href="/help#nguon-du-lieu" target="_blank"><u>bảng giá thuê tham khảo</u></a>.</p>
+    </section>
+
+    <section class="co-sec">
+      <h2>Đặt thuê & giao nhận</h2>
+      <label class="switch-row"><span class="switch-row__ico">{{ icon("bolt", 22) }}</span><span><b>Cho phép Đặt ngay</b><small>Người thuê đặt là xác nhận luôn, không cần bạn duyệt</small></span><input type="checkbox" class="switch" name="instant_book" value="1" {{ "checked" if lf.instant_book }}></label>
+      <label class="switch-row"><span class="switch-row__ico">{{ icon("truck", 22) }}</span><span><b>Giao tận nơi</b><small>Bạn mang máy đến cho người thuê</small></span><input type="checkbox" class="switch" name="delivery" value="1" {{ "checked" if lf.delivery }}></label>
+      <div class="field-row">
+        <label class="field"><span>Phí giao máy (₫)</span><input name="delivery_fee" inputmode="numeric" value="{{ lf.delivery_fee }}" data-money></label>
+        <label class="field"><span>Thuê tối thiểu (ngày)</span><input name="min_days" type="number" min="1" max="30" value="{{ lf.min_days }}"></label>
+        <label class="field"><span>Chính sách hủy</span><select name="cancellation">{% for key, p in policies.items() %}<option value="{{ key }}" {{ "selected" if lf.cancellation == key }}>{{ p.name }}</option>{% endfor %}</select></label>
+      </div>
+    </section>
+
+    <section class="co-sec">
+      <h2>Nơi bàn giao</h2>
+      <p class="muted small">Người thuê chỉ thấy vị trí gần đúng. Kéo ghim trên bản đồ tới khu vực của bạn.</p>
+      <div class="field-row">
+        <label class="field"><span>Chọn nhanh khu vực</span>
+          <select data-loc-select><option value="">— Chọn —</option>{% for key, loc in locations.items() %}<option value="{{ key }}">{{ loc[1] }}, {{ loc[0] }}</option>{% endfor %}</select>
+        </label>
+        <label class="field"><span>Tỉnh / thành phố</span><select name="city" data-city>{% for c in cities_list %}<option {{ "selected" if lf.city == c }}>{{ c }}</option>{% endfor %}</select></label>
+      </div>
+      <label class="field field--block"><span>Phường / xã (địa giới mới từ 01/07/2025)</span><input name="ward" value="{{ lf.ward }}" required data-ward placeholder="Phường Cầu Giấy"></label>
+      <input type="hidden" name="lat" value="{{ lf.lat }}" data-lat>
+      <input type="hidden" name="lng" value="{{ lf.lng }}" data-lng>
+      <div class="map map--picker" id="picker-map" data-tiles="{{ tile_url }}" data-attr="{{ tile_attribution }}" data-locations='{{ locations_json }}'></div>
+    </section>
+
+    <section class="co-sec">
+      <h2>Thông số & phụ kiện</h2>
+      <label class="field field--block"><span>Thông số kỹ thuật — mỗi dòng “Nhãn: giá trị”</span><textarea name="specs_text" rows="6" placeholder="Cảm biến: Full-frame 33MP&#10;Video: 4K 60p 10-bit&#10;Pin: NP-FZ100">{{ lf.specs_text }}</textarea></label>
+      <label class="field field--block"><span>Trong bộ cho thuê có — mỗi dòng một món</span><textarea name="included_text" rows="5" placeholder="Body máy&#10;2 pin + sạc&#10;Thẻ nhớ 128GB">{{ lf.included_text }}</textarea></label>
+    </section>
+
+    <section class="co-sec" id="photos">
+      <h2>Ảnh thật</h2>
+      <p class="muted small">JPG/PNG/WEBP, tối đa 12 ảnh. Ảnh đầu tiên là ảnh bìa. Chưa có ảnh thật thì tin sẽ dùng ảnh minh họa tự động.</p>
+      {% if photos %}
+      <div class="photo-grid">
+        {% for p in photos %}
+        <figure><img src="/uploads/{{ p.filename }}" alt="Ảnh {{ loop.index }}" loading="lazy"><button class="icon-btn icon-btn--danger" type="submit" form="del-photo-{{ p.id }}" aria-label="Xóa ảnh">{{ icon("trash", 16) }}</button></figure>
+        {% endfor %}
+      </div>
+      {% elif art_preview %}
+      <div class="photo-grid photo-grid--art">{% for u in art_preview %}<figure><img src="{{ u }}" alt="" loading="lazy"></figure>{% endfor %}</div>
+      {% endif %}
+      <label class="dropzone">
+        {{ icon("upload", 28) }}
+        <span><b>Chọn ảnh để tải lên</b><small class="muted" data-file-count>hoặc kéo thả vào đây</small></span>
+        <input type="file" name="photos" accept="image/jpeg,image/png,image/webp" multiple data-file-input>
+      </label>
+    </section>
+
+    <div class="lform__foot">
+      <a class="link-btn" href="/host"><u>Hủy</u></a>
+      <button class="btn btn--brand btn--lg" type="submit">{{ "Lưu thay đổi" if listing_id else "Đăng tin" }}</button>
+    </div>
+  </form>
+
+  {% for p in photos %}
+  <form id="del-photo-{{ p.id }}" method="post" action="/host/listings/{{ listing_id }}/photos/{{ p.id }}/delete" data-confirm="Xóa ảnh này?"><input type="hidden" name="csrf" value="{{ csrf }}"></form>
+  {% endfor %}
+
+  {% if listing_id %}
+  <section class="co-sec" id="calendar">
+    <h2>Khóa lịch</h2>
+    <p class="muted small">Chặn những ngày bạn dùng máy hoặc mang máy đi bảo dưỡng. Ngày trả là ngày máy sẵn sàng trở lại.</p>
+    <form class="block-form" method="post" action="/host/listings/{{ listing_id }}/blocks">
+      <input type="hidden" name="csrf" value="{{ csrf }}">
+      <label class="field"><span>Từ ngày</span><input type="date" name="start" min="{{ today }}" required></label>
+      <label class="field"><span>Đến ngày</span><input type="date" name="end" min="{{ today }}" required></label>
+      <label class="field"><span>Lý do (riêng tư)</span><input name="reason" maxlength="120" placeholder="Bảo dưỡng, tự dùng…"></label>
+      <button class="btn btn--dark" type="submit">Khóa lịch</button>
+    </form>
+    {% if blocks %}
+    <ul class="block-list">
+      {% for k in blocks %}
+      <li>{{ icon("calendar", 18) }} {{ date_range(k.start_date, k.end_date) }}{% if k.reason %} · <span class="muted">{{ k.reason }}</span>{% endif %}
+        <form method="post" action="/host/listings/{{ listing_id }}/blocks/{{ k.id }}/delete"><input type="hidden" name="csrf" value="{{ csrf }}"><button class="link-btn" type="submit"><u>Mở lại</u></button></form>
+      </li>
+      {% endfor %}
+    </ul>
+    {% endif %}
+  </section>
+  {% endif %}
+</div>
+{% endblock %}
+{% block scripts %}
+<script src="/static/vendor/leaflet/leaflet.js" defer></script>
+<script src="/static/js/host.js?v={{ static_v }}" defer></script>
+{% endblock %}

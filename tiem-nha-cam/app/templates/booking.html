@@ -1,0 +1,161 @@
+{% extends "base.html" %}
+{% from "partials/icons.html" import icon, star, avatar %}
+{% block title %}Đơn {{ b.code }} · {{ site_name }}{% endblock %}
+
+{% block content %}
+{% set st = status_labels[b.effective_status] %}
+{% set steps = [("pending", "Đã gửi yêu cầu"), ("confirmed", "Chủ thuê xác nhận"), ("active", "Nhận máy"), ("completed", "Trả máy"), ("reviewed", "Đánh giá")] %}
+{% set step_idx = {"pending": 0, "upcoming": 1, "active": 2, "completed": 3}.get(b.effective_status, -1) + (1 if review else 0) %}
+<div class="wrap wrap--narrow page-pad booking">
+  <a class="back-link" href="{{ '/host' if role == 'host' else '/trips' }}">{{ icon("chev-left", 16, stroke=2.4) }} {{ "Quản lý cho thuê" if role == "host" else "Chuyến thuê" }}</a>
+
+  <div class="booking__grid">
+    <div class="booking__main">
+      <header class="booking__head">
+        <span class="pill pill--{{ st[1] }}">{{ st[0] }}</span>
+        <h1>{{ b.title }}</h1>
+        <p class="muted">Mã đơn <b>{{ b.code }}</b> · đặt {{ b.created_at | time_ago }}</p>
+      </header>
+
+      {% if step_idx >= 0 %}
+      <ol class="timeline" aria-label="Tiến trình đơn thuê">
+        {% for key, label in steps %}
+        <li class="{{ 'done' if loop.index0 <= step_idx }} {{ 'current' if loop.index0 == step_idx + 1 }}"><i></i><span>{{ label }}</span></li>
+        {% endfor %}
+      </ol>
+      {% endif %}
+
+      {% if b.effective_status == "pending" and role == "renter" %}
+      <div class="note-box">{{ icon("clock", 22) }}<p>Đang chờ <b>{{ b.host_name }}</b> phản hồi. Yêu cầu sẽ tự hết hạn sau 24 giờ nếu không được duyệt — khi đó bạn không mất phí.</p></div>
+      {% elif b.effective_status == "pending" and role == "host" %}
+      <div class="note-box note-box--action">
+        {{ icon("chat", 22) }}
+        <div>
+          <p><b>{{ b.renter_name }}</b> muốn thuê {{ b.days }} ngày ({{ date_range(b.start_date, b.end_date) }}). Bạn nhận được <b>{{ b.host_payout | vnd }}</b> sau phí nền tảng {{ host_fee_pct|int }}%.</p>
+          <div class="btn-row">
+            <form method="post" action="/host/bookings/{{ b.code }}/accept"><input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="back" value="/trips/{{ b.code }}"><button class="btn btn--dark">Chấp nhận</button></form>
+            <form method="post" action="/host/bookings/{{ b.code }}/decline"><input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="back" value="/trips/{{ b.code }}"><button class="btn btn--outline">Từ chối</button></form>
+          </div>
+        </div>
+      </div>
+      {% elif b.effective_status == "upcoming" %}
+      <div class="note-box note-box--ok">{{ icon("check-circle", 22) }}<p>Đơn đã xác nhận! {% if role == "renter" %}Mang theo <b>CCCD bản gốc</b> và <b>{{ b.deposit | vnd }}</b> tiền cọc khi nhận máy.{% else %}Chuẩn bị máy, sạc đầy pin và format thẻ nhớ trước giờ bàn giao.{% endif %}</p></div>
+      {% elif b.effective_status == "active" %}
+      <div class="note-box note-box--info">{{ icon("info", 22) }}<p>Đang trong thời gian thuê — hạn trả máy: <b>{{ b.end_date | fmt_date("long") }}</b>. Trả trễ sẽ bị phụ thu theo quy định.</p></div>
+      {% elif b.effective_status == "completed" and role == "renter" and not review %}
+      <div class="note-box note-box--brand">{{ icon("star", 22) }}<p>Chuyến thuê đã hoàn tất. Hãy để lại đánh giá để giúp cộng đồng thuê máy nhé! <a href="#review"><u>Viết đánh giá</u></a></p></div>
+      {% elif b.status in ["cancelled", "declined", "expired"] %}
+      <div class="note-box note-box--muted">{{ icon("info", 22) }}<p>Đơn {{ st[0] | lower }}.{% if b.refund %} Số tiền hoàn: <b>{{ b.refund | vnd }}</b> (nếu bạn đã thanh toán).{% endif %}</p></div>
+      {% endif %}
+
+      <section class="co-sec">
+        <h2>Chi tiết</h2>
+        <dl class="kv">
+          <div><dt>Nhận máy</dt><dd>{{ b.start_date | fmt_date("long") }}</dd></div>
+          <div><dt>Trả máy</dt><dd>{{ b.end_date | fmt_date("long") }}</dd></div>
+          <div><dt>Hình thức</dt><dd>{% if b.delivery %}Giao tận nơi: {{ b.delivery_address }}{% else %}Tự đến lấy · {{ b.ward }}, {{ b.city }} <a href="{{ maps_url }}" target="_blank" rel="noopener"><u>Bản đồ</u></a>{% endif %}</dd></div>
+          <div><dt>Thanh toán</dt><dd>{{ payment_labels[b.payment_method] }}</dd></div>
+          <div><dt>{{ "Người thuê" if role == "host" else "Chủ thuê" }}</dt><dd>
+            {% if role == "host" %}{{ b.renter_name }}{% if b.status == "confirmed" %} · <a href="tel:{{ b.renter_phone }}">{{ b.renter_phone }}</a>{% endif %}
+            {% else %}{{ b.host_name }}{% if b.status == "confirmed" and b.host_phone %} · <a href="tel:{{ b.host_phone }}">{{ b.host_phone }}</a>{% endif %}{% endif %}
+          </dd></div>
+        </dl>
+        {% if b.status != "confirmed" and b.effective_status not in ["cancelled", "declined", "expired"] %}<p class="muted small">Số điện thoại hai bên hiển thị sau khi đơn được xác nhận.</p>{% endif %}
+      </section>
+
+      {% if qr %}
+      <section class="co-sec">
+        <h2>Thanh toán bằng VietQR</h2>
+        <div class="qr-box">
+          <img src="{{ qr }}" alt="Mã VietQR thanh toán đơn {{ b.code }}" width="220" height="220" loading="lazy">
+          <div>
+            <p>Quét mã bằng app ngân hàng bất kỳ. Số tiền và nội dung <b>{{ b.code }}</b> đã điền sẵn.</p>
+            <p class="muted small">{% if b.effective_status == "pending" %}Bạn có thể chờ chủ thuê xác nhận rồi mới chuyển khoản.{% else %}Vui lòng chuyển trước giờ nhận máy.{% endif %}</p>
+          </div>
+        </div>
+      </section>
+      {% elif b.payment_method == "transfer" and b.effective_status in ["pending", "upcoming"] %}
+      <section class="co-sec"><h2>Thanh toán</h2><p class="muted">Chủ thuê sẽ gửi thông tin chuyển khoản qua tin nhắn. Nội dung chuyển khoản: <b>{{ b.code }}</b>.</p></section>
+      {% endif %}
+
+      <section class="co-sec chat" id="chat">
+        <h2>Tin nhắn</h2>
+        <div class="chat__list">
+          {% for m in messages %}
+          <div class="msg {{ 'msg--me' if m.sender_id == user.id }} {{ 'msg--sys' if m.body.startswith('[Hệ thống]') }}">
+            {% if not m.body.startswith('[Hệ thống]') %}{{ avatar(m.name, m.avatar_hue, 32) }}{% endif %}
+            <div class="msg__bubble"><p>{{ m.body | replace("[Hệ thống] ", "") }}</p><small class="muted">{{ m.name }} · {{ m.created_at[11:16] }} {{ m.created_at[:10] | fmt_date }}</small></div>
+          </div>
+          {% else %}
+          <p class="muted">Chưa có tin nhắn. Hãy chào hỏi và hẹn giờ bàn giao máy nhé.</p>
+          {% endfor %}
+        </div>
+        {% if b.status in ["pending", "confirmed"] %}
+        <form class="chat__form" method="post" action="/trips/{{ b.code }}/message">
+          <input type="hidden" name="csrf" value="{{ csrf }}">
+          <textarea name="body" rows="2" maxlength="2000" placeholder="Nhập tin nhắn…" required></textarea>
+          <button class="btn btn--dark" type="submit" aria-label="Gửi">{{ icon("send", 18) }}</button>
+        </form>
+        {% endif %}
+      </section>
+
+      {% if role == "renter" and b.effective_status == "completed" %}
+      <section class="co-sec" id="review">
+        <h2>Đánh giá của bạn</h2>
+        {% if review %}
+          <p class="stars">{% for i in range(review.rating) %}{{ star(14) }}{% endfor %}</p>
+          <p>{{ review.comment }}</p>
+        {% else %}
+        <form method="post" action="/trips/{{ b.code }}/review" class="review-form">
+          <input type="hidden" name="csrf" value="{{ csrf }}">
+          {% for name, label in [("rating", "Tổng thể"), ("r_condition", "Tình trạng máy"), ("r_accuracy", "Đúng mô tả"), ("r_communication", "Giao tiếp"), ("r_handover", "Giao nhận"), ("r_value", "Đáng tiền")] %}
+          <fieldset class="star-input">
+            <legend>{{ label }}</legend>
+            <div class="star-input__stars">
+              {% for s in range(5, 0, -1) %}<input type="radio" id="{{ name }}-{{ s }}" name="{{ name }}" value="{{ s }}" {{ "checked" if s == 5 }}><label for="{{ name }}-{{ s }}" title="{{ s }} sao">{{ star(22) }}</label>{% endfor %}
+            </div>
+          </fieldset>
+          {% endfor %}
+          <label class="field field--block"><span>Nhận xét</span><textarea name="comment" rows="4" minlength="10" maxlength="2000" required placeholder="Máy có đúng mô tả không? Chủ thuê hỗ trợ thế nào?"></textarea></label>
+          <button class="btn btn--brand" type="submit">Gửi đánh giá</button>
+        </form>
+        {% endif %}
+      </section>
+      {% endif %}
+    </div>
+
+    <aside class="booking__side">
+      <div class="sum-card">
+        <div class="sum-card__head">
+          <img src="{{ cover }}" alt="" width="124" height="106">
+          <div><b>{{ b.title }}</b><p class="muted">{{ b.brand }} {{ b.model }}</p><a class="small" href="/listing/{{ b.listing_id }}"><u>Xem tin đăng</u></a></div>
+        </div>
+        <h3>Chi tiết giá</h3>
+        <div class="sum-lines">
+          <div><span>{{ b.price_day | vnd }} × {{ b.days }} ngày</span><span>{{ b.subtotal | vnd }}</span></div>
+          {% if b.discount %}<div class="green"><span>Giảm giá thuê dài</span><span>−{{ b.discount | vnd }}</span></div>{% endif %}
+          {% if b.delivery_fee %}<div><span>Phí giao máy</span><span>{{ b.delivery_fee | vnd }}</span></div>{% endif %}
+          <div><span>Phí dịch vụ</span><span>{{ b.service_fee | vnd }}</span></div>
+          <div class="sum-total"><b>Tổng</b><b>{{ b.total | vnd }}</b></div>
+          <div class="muted"><span>Tiền cọc (hoàn lại)</span><span>{{ b.deposit | vnd }}</span></div>
+          {% if role == "host" %}<div class="sum-total"><b>Bạn nhận</b><b>{{ b.host_payout | vnd }}</b></div>{% endif %}
+        </div>
+        <div class="sum-policy">{{ icon("calendar", 18) }}<p><b>{{ policy.name }}:</b> {{ policy.detail }}</p></div>
+
+        {% if role == "renter" and refund_preview is not none %}
+        <form method="post" action="/trips/{{ b.code }}/cancel" data-confirm="Hủy đơn {{ b.code }}? Số tiền hoàn dự kiến: {{ refund_preview | vnd }}.">
+          <input type="hidden" name="csrf" value="{{ csrf }}">
+          <button class="btn btn--outline btn--block" type="submit">Hủy đơn thuê</button>
+          <p class="muted small center">Hoàn dự kiến nếu hủy hôm nay: <b>{{ refund_preview | vnd }}</b></p>
+        </form>
+        {% elif role == "host" and b.effective_status == "upcoming" %}
+        <form method="post" action="/host/bookings/{{ b.code }}/cancel" data-confirm="Hủy đơn này? Người thuê sẽ được hoàn 100% và điểm uy tín của bạn có thể bị ảnh hưởng.">
+          <input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="back" value="/trips/{{ b.code }}">
+          <button class="btn btn--outline btn--block" type="submit">Hủy đơn (chủ thuê)</button>
+        </form>
+        {% endif %}
+      </div>
+    </aside>
+  </div>
+</div>
+{% endblock %}

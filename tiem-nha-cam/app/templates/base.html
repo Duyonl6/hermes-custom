@@ -1,0 +1,140 @@
+{% from "partials/icons.html" import icon, avatar %}<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>{% block title %}{{ site_name }} · Thuê máy ảnh, action cam, flycam{% endblock %}</title>
+  <meta name="description" content="{% block description %}{{ site_tagline }}. Đặt thuê theo ngày, giao tận nơi, chủ thuê đã xác minh.{% endblock %}">
+  <meta name="theme-color" content="#FF5A1F">
+  <meta property="og:site_name" content="{{ site_name }}">
+  <meta property="og:title" content="{{ self.title() }}">
+  <meta property="og:description" content="{{ self.description() }}">
+  {% block og %}{% endblock %}
+  <link rel="icon" href="/static/img/logo.svg" type="image/svg+xml">
+  <link rel="preload" href="/static/fonts/be-vietnam-pro-vietnamese-400-normal.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="/static/css/app.css?v={{ static_v }}">
+  {% block head %}{% endblock %}
+</head>
+<body class="{% block body_class %}{% endblock %}" data-csrf="{{ csrf }}" data-auth="{{ 1 if user else 0 }}">
+  <a class="skip" href="#main">Bỏ qua tới nội dung</a>
+  {% if demo_mode %}
+  <div class="demo-bar" data-dismiss-key="demo-bar">
+    <span>Bản demo · dữ liệu mẫu<span class="demo-long"> (chủ thuê, đánh giá là nhân vật minh họa; giá thuê tham khảo từ các shop thật)</span> — <a href="/help#nguon-du-lieu">nguồn giá</a></span>
+    <button class="demo-bar__x" type="button" aria-label="Ẩn thông báo">{{ icon("x", 16) }}</button>
+  </div>
+  {% endif %}
+
+  <header class="site-header {% block header_class %}{% endblock %}" id="site-header">
+    <div class="wrap header-row">
+      <a class="logo" href="/" aria-label="{{ site_name }} — trang chủ">
+        <img src="/static/img/logo.svg" width="34" height="34" alt="">
+        <span class="logo__text">{{ site_name }}</span>
+      </a>
+
+      <button class="search-compact" type="button" data-open-search aria-label="Mở tìm kiếm">
+        <span class="sc-seg"><b>{{ request.query_params.get("city") or "Bất kỳ đâu" }}</b></span>
+        <span class="sc-seg">{% if request.query_params.get("start") %}{{ date_range(request.query_params.get("start"), request.query_params.get("end") or request.query_params.get("start")) }}{% else %}Ngày bất kỳ{% endif %}</span>
+        <span class="sc-seg muted">{{ request.query_params.get("q") or "Thiết bị gì?" }}</span>
+        <span class="sc-btn">{{ icon("search", 14, stroke=3) }}</span>
+      </button>
+
+      <nav class="header-nav" aria-label="Tài khoản">
+        <a class="nav-host" href="/host">{% if user and user.is_host %}Quản lý cho thuê{% if host_pending %}<span class="dot-badge">{{ host_pending }}</span>{% endif %}{% else %}Cho thuê thiết bị của bạn{% endif %}</a>
+        <a class="nav-icon" href="/help" aria-label="Trợ giúp">{{ icon("globe", 18) }}</a>
+        <div class="usermenu">
+          <button class="usermenu__btn" type="button" aria-haspopup="true" aria-expanded="false" data-menu-btn>
+            {{ icon("menu", 18, stroke=2) }}
+            {% if user %}{{ avatar(user.name, user.avatar_hue, 30) }}{% else %}<span class="avatar avatar--ghost">{{ icon("user", 18) }}</span>{% endif %}
+            {% if user and host_pending %}<span class="usermenu__dot"></span>{% endif %}
+          </button>
+          <div class="usermenu__panel" role="menu" hidden>
+            {% if user %}
+              <div class="usermenu__head">{{ avatar(user.name, user.avatar_hue, 36) }}<div><b>{{ user.name }}</b><small>{{ user.email }}</small></div></div>
+              <a role="menuitem" href="/trips">{{ icon("suitcase", 18) }} Chuyến thuê</a>
+              <a role="menuitem" href="/wishlist">{{ icon("heart", 18) }} Yêu thích</a>
+              <a role="menuitem" href="/host">{{ icon("box", 18) }} {{ "Quản lý cho thuê" if user.is_host else "Trở thành chủ thuê" }}{% if host_pending %}<span class="dot-badge">{{ host_pending }}</span>{% endif %}</a>
+              {% if user.is_host %}<a role="menuitem" href="/host/listings/new">{{ icon("plus", 18) }} Đăng thiết bị mới</a>{% endif %}
+              <hr>
+              <a role="menuitem" href="/account">{{ icon("user", 18) }} Tài khoản</a>
+              <a role="menuitem" href="/help">{{ icon("info", 18) }} Trung tâm trợ giúp</a>
+              <form method="post" action="/logout"><input type="hidden" name="csrf" value="{{ csrf }}"><button role="menuitem" type="submit">{{ icon("logout", 18) }} Đăng xuất</button></form>
+            {% else %}
+              <a role="menuitem" href="/login?next={{ request.url.path | urlencode }}"><b>Đăng nhập</b></a>
+              <a role="menuitem" href="/register?next={{ request.url.path | urlencode }}">Đăng ký</a>
+              <hr>
+              <a role="menuitem" href="/register?as_host=1">Cho thuê thiết bị của bạn</a>
+              <a role="menuitem" href="/help">Trung tâm trợ giúp</a>
+            {% endif %}
+          </div>
+        </div>
+      </nav>
+    </div>
+
+    {% include "partials/searchbar.html" %}
+  </header>
+  <div class="search-scrim" data-close-search></div>
+
+  {% if flashes %}
+  <div class="toasts" role="status" aria-live="polite">
+    {% for kind, msg in flashes %}
+      <div class="toast toast--{{ kind }}">{{ icon({"error": "warning", "warning": "warning"}.get(kind, "check-circle"), 20) }}<span>{{ msg }}</span><button type="button" class="toast__x" aria-label="Đóng">{{ icon("x", 16) }}</button></div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <main id="main" class="{% block main_class %}{% endblock %}">
+    {% block content %}{% endblock %}
+  </main>
+
+  {% block footer %}
+  <footer class="site-footer">
+    <div class="wrap">
+      <div class="footer-cols">
+        <section>
+          <h3>Hỗ trợ</h3>
+          <a href="/help">Trung tâm trợ giúp</a>
+          <a href="/help#cach-thue">Cách thuê hoạt động</a>
+          <a href="/help#coc-giay-to">Cọc & giấy tờ</a>
+          <a href="/help#chinh-sach-huy">Chính sách hủy</a>
+        </section>
+        <section>
+          <h3>Cho thuê</h3>
+          <a href="/host">Cho thuê thiết bị của bạn</a>
+          <a href="/help#cho-thue">Mẹo cho chủ thuê</a>
+          <a href="/help#bao-ve">Bảo vệ thiết bị</a>
+          <a href="/help#flycam">Quy định bay flycam 2026</a>
+        </section>
+        <section>
+          <h3>{{ site_name }}</h3>
+          <a href="/">Khám phá thiết bị</a>
+          <a href="/?category=drone">Thuê flycam</a>
+          <a href="/?category=action">Thuê action cam</a>
+          <a href="/help#nguon-du-lieu">Nguồn dữ liệu giá</a>
+        </section>
+      </div>
+      <div class="footer-bottom">
+        <span>© {{ today[:4] }} {{ site_name }} · <a href="/help#dieu-khoan">Điều khoản</a> · <a href="/help#quyen-rieng-tu">Quyền riêng tư</a> · <a href="/sitemap.xml">Sơ đồ trang</a></span>
+        <span class="muted">{{ icon("globe", 16) }} Tiếng Việt (VN) · ₫ VND</span>
+      </div>
+    </div>
+  </footer>
+  {% endblock %}
+
+  <nav class="tabbar" aria-label="Điều hướng chính">
+    <a href="/" class="{{ 'is-active' if request.url.path == '/' }}">{{ icon("search", 22) }}<span>Khám phá</span></a>
+    <a href="/wishlist" class="{{ 'is-active' if request.url.path == '/wishlist' }}">{{ icon("heart", 22) }}<span>Yêu thích</span></a>
+    {% if user %}
+      <a href="/trips" class="{{ 'is-active' if request.url.path.startswith('/trips') }}">{{ icon("suitcase", 22) }}<span>Chuyến thuê</span></a>
+      <a href="/host" class="{{ 'is-active' if request.url.path.startswith('/host') }}">{{ icon("box", 22) }}<span>Cho thuê</span>{% if host_pending %}<i class="tabbar__dot"></i>{% endif %}</a>
+      <a href="/account" class="{{ 'is-active' if request.url.path == '/account' }}">{{ icon("user", 22) }}<span>Hồ sơ</span></a>
+    {% else %}
+      <a href="/host">{{ icon("box", 22) }}<span>Cho thuê</span></a>
+      <a href="/login">{{ icon("user", 22) }}<span>Đăng nhập</span></a>
+    {% endif %}
+  </nav>
+
+  <script src="/static/js/calendar.js?v={{ static_v }}" defer></script>
+  <script src="/static/js/app.js?v={{ static_v }}" defer></script>
+  {% block scripts %}{% endblock %}
+</body>
+</html>

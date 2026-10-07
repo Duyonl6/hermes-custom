@@ -1,0 +1,105 @@
+{% extends "base.html" %}
+{% from "partials/icons.html" import icon, star, avatar %}
+{% block title %}{{ "Xác nhận và thanh toán" if listing.instant_book else "Yêu cầu đặt thuê" }} · {{ site_name }}{% endblock %}
+{% block body_class %}page-checkout{% endblock %}
+
+{% block content %}
+<div class="wrap wrap--narrow checkout">
+  <div class="checkout__title">
+    <a class="icon-btn" href="/listing/{{ listing.id }}?start={{ start }}&end={{ end }}#book" aria-label="Quay lại">{{ icon("chev-left", 18, stroke=2.4) }}</a>
+    <h1>{{ "Xác nhận và thanh toán" if listing.instant_book else "Yêu cầu đặt thuê" }}</h1>
+  </div>
+
+  {% if errors %}
+  <div class="alert alert--error" role="alert">{{ icon("warning", 20) }}<div>{% for e in errors %}<p>{{ e }}</p>{% endfor %}</div></div>
+  {% endif %}
+
+  <div class="checkout__grid">
+    <form class="checkout__main" method="post" action="/book/{{ listing.id }}" data-checkout>
+      <input type="hidden" name="csrf" value="{{ csrf }}">
+      <input type="hidden" name="start" value="{{ start }}">
+      <input type="hidden" name="end" value="{{ end }}">
+      {% if delivery %}<input type="hidden" name="delivery" value="1">{% endif %}
+
+      {% if not listing.instant_book %}
+      <div class="note-box">{{ icon("clock", 22) }}<p><b>Đây là thiết bị cần duyệt.</b> Bạn chưa bị trừ tiền cho tới khi {{ listing.host_name }} xác nhận (tối đa 24 giờ).</p></div>
+      {% endif %}
+
+      <section class="co-sec">
+        <h2>Chuyến thuê của bạn</h2>
+        <div class="co-row"><div><b>Ngày</b><p>{{ start | fmt_date("long") }} → {{ end | fmt_date("long") }} · {{ q.days }} ngày</p></div><a class="link-btn" href="/listing/{{ listing.id }}?start={{ start }}&end={{ end }}#dates"><u>Chỉnh sửa</u></a></div>
+        <div class="co-row"><div><b>Nhận máy</b><p>{% if delivery %}Giao tận nơi ({{ q.delivery_fee | vnd }}){% else %}Tự đến lấy tại {{ listing.ward }}, {{ listing.city }}{% endif %}</p></div></div>
+      </section>
+
+      {% if delivery %}
+      <section class="co-sec">
+        <h2>Địa chỉ giao máy</h2>
+        <label class="field field--block"><span>Địa chỉ đầy đủ (số nhà, đường, phường, thành phố)</span>
+          <input name="delivery_address" required maxlength="200" value="{{ form.get('delivery_address', '') }}" placeholder="VD: 12 Nguyễn Huệ, Phường Sài Gòn, TP. Hồ Chí Minh">
+        </label>
+      </section>
+      {% endif %}
+
+      <section class="co-sec">
+        <h2>Thanh toán tiền thuê</h2>
+        <label class="pay-opt">
+          <input type="radio" name="payment_method" value="transfer" {{ "checked" if form.get("payment_method", "transfer") == "transfer" }}>
+          <span class="pay-opt__ico">{{ icon("card", 22) }}</span>
+          <span><b>Chuyển khoản / quét VietQR</b><small>Mã QR hiện ở trang đơn thuê sau khi đặt — nội dung chuyển khoản là mã đơn.</small></span>
+        </label>
+        <label class="pay-opt">
+          <input type="radio" name="payment_method" value="cash" {{ "checked" if form.get("payment_method") == "cash" }}>
+          <span class="pay-opt__ico">{{ icon("tag", 22) }}</span>
+          <span><b>Tiền mặt khi nhận máy</b><small>Thanh toán tiền thuê cùng tiền cọc lúc bàn giao.</small></span>
+        </label>
+      </section>
+
+      <section class="co-sec">
+        <h2>Thông tin liên hệ</h2>
+        <label class="field field--block"><span>Số điện thoại / Zalo</span>
+          <input name="phone" type="tel" inputmode="tel" required value="{{ form.get('phone', user.phone) }}" placeholder="09xx xxx xxx">
+        </label>
+      </section>
+
+      <section class="co-sec">
+        <h2>{{ "Nhắn cho chủ thuê" if listing.instant_book else "Gửi lời nhắn cho " ~ listing.host_name }}</h2>
+        <p class="muted">Giới thiệu bạn thuê máy để làm gì, giờ nhận máy mong muốn{% if listing.category == "drone" %}, khu vực dự định bay{% endif %}.</p>
+        <div class="msg-to">{{ avatar(listing.host_name, listing.host_hue, 40) }}<div><b>{{ listing.host_name }}</b><small class="muted">Phản hồi {{ listing.host_response | response_label }}</small></div></div>
+        <textarea name="message" rows="4" maxlength="1500" placeholder="Chào {{ listing.host_name }}, mình muốn thuê máy để…" {{ "required minlength=10" if not listing.instant_book }}>{{ form.get('message', '') }}</textarea>
+      </section>
+
+      <section class="co-sec">
+        <h2>Giấy tờ & cam kết</h2>
+        <label class="check"><input type="checkbox" name="agree_id" value="1" {{ "checked" if form.get("agree_id") }} required><span>Tôi sẽ xuất trình <b>CCCD/hộ chiếu bản gốc</b> và đóng <b>tiền cọc {{ q.deposit | vnd }}</b> khi nhận máy (hoàn lại khi trả máy nguyên vẹn).</span></label>
+        <label class="check"><input type="checkbox" name="agree_rules" value="1" {{ "checked" if form.get("agree_rules") }} required><span>Tôi đồng ý với quy định thuê, chính sách hủy <b>{{ policy.name }}</b> ({{ policy.summary[:-1] | lower }}) và chịu trách nhiệm bồi thường nếu làm hư hỏng thiết bị{% if listing.category == "drone" %}, đồng thời tuân thủ quy định bay flycam hiện hành{% endif %}.</span></label>
+      </section>
+
+      <p class="fine muted">Bằng việc bấm nút bên dưới, bạn đồng ý thanh toán tổng số tiền hiển thị nếu đơn được xác nhận. {{ site_name }} giữ vai trò trung gian kết nối; hợp đồng thuê là giữa bạn và chủ thuê.</p>
+      <button class="btn btn--brand btn--lg" type="submit">{{ "Xác nhận đặt thuê" if listing.instant_book else "Gửi yêu cầu đặt thuê" }}</button>
+    </form>
+
+    <aside class="checkout__side">
+      <div class="sum-card">
+        <div class="sum-card__head">
+          <img src="{{ cover }}" alt="" width="124" height="106">
+          <div>
+            <b>{{ listing.title }}</b>
+            <p class="muted">{{ listing.ward }}, {{ listing.city }}</p>
+            <p class="small">{% if listing.rating_count %}{{ star(11) }} {{ "%.2f"|format(listing.rating_avg) | replace(".", ",") }} ({{ listing.rating_count }}){% if listing.host_superhost %} · {% endif %}{% endif %}{% if listing.host_superhost %}{{ icon("medal", 12) }} Chủ thuê siêu cấp{% endif %}</p>
+          </div>
+        </div>
+        <h3>Chi tiết giá</h3>
+        <div class="sum-lines">
+          <div><span>{{ q.price_day | vnd }} × {{ q.days }} ngày</span><span>{{ q.subtotal | vnd }}</span></div>
+          {% if q.discount %}<div class="green"><span>Giảm giá thuê dài ({{ q.discount_pct }}%)</span><span>−{{ q.discount | vnd }}</span></div>{% endif %}
+          {% if q.delivery_fee %}<div><span>Phí giao máy</span><span>{{ q.delivery_fee | vnd }}</span></div>{% endif %}
+          <div><span>Phí dịch vụ ({{ service_fee_pct|int }}%)</span><span>{{ q.service_fee | vnd }}</span></div>
+          <div class="sum-total"><b>Tổng (VND)</b><b>{{ q.total | vnd }}</b></div>
+          <div class="muted"><span>Tiền cọc khi nhận máy (hoàn lại)</span><span>{{ q.deposit | vnd }}</span></div>
+        </div>
+        <div class="sum-policy">{{ icon("calendar", 18) }}<p><b>Hủy {{ policy.name | lower }}:</b> {{ policy.detail }}</p></div>
+      </div>
+    </aside>
+  </div>
+</div>
+{% endblock %}

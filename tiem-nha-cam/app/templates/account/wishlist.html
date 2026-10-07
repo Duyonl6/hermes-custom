@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% from "partials/icons.html" import icon %}
+{% from "partials/card.html" import listing_card %}
+{% block title %}Yêu thích · {{ site_name }}{% endblock %}
+{% block content %}
+<div class="wrap page-pad">
+  <h1 class="page-title">Yêu thích</h1>
+  {% if items %}
+  <p class="muted">{{ items|length }} thiết bị đã lưu</p>
+  <div class="grid-listings">{% for l in items %}{{ listing_card(l, wishlist_ids) }}{% endfor %}</div>
+  {% else %}
+  <div class="empty empty--left">
+    {{ icon("heart", 36) }}
+    <h2>Tạo danh sách yêu thích đầu tiên</h2>
+    <p>Trong lúc tìm kiếm, bấm vào biểu tượng trái tim để lưu những thiết bị bạn thích.</p>
+    <a class="btn btn--dark" href="/">Khám phá thiết bị</a>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

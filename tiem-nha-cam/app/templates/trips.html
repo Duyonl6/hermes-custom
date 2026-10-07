@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% from "partials/icons.html" import icon %}
+{% block title %}Chuyến thuê · {{ site_name }}{% endblock %}
+
+{% macro trip_card(b) -%}
+<a class="trip" href="/trips/{{ b.code }}">
+  <img src="{{ b.cover }}" alt="" loading="lazy" width="160" height="160">
+  <div class="trip__body">
+    {% set st = status_labels[b.effective_status] %}
+    <span class="pill pill--{{ st[1] }}">{{ st[0] }}</span>
+    <h3>{{ b.title }}</h3>
+    <p class="muted">{{ date_range(b.start_date, b.end_date) }} · {{ b.days }} ngày · {{ b.ward | replace("Phường ", "") }}, {{ b.city }}</p>
+    <p class="muted small">Chủ thuê {{ b.host_name }} · Mã đơn {{ b.code }}</p>
+    <p class="trip__price"><b>{{ b.total | vnd }}</b>{% if b.effective_status == "completed" and not b.reviewed %}<span class="pill pill--brand">Viết đánh giá</span>{% endif %}</p>
+  </div>
+</a>
+{%- endmacro %}
+
+{% block content %}
+<div class="wrap wrap--narrow page-pad">
+  <h1 class="page-title">Chuyến thuê</h1>
+  <div class="tabs" role="tablist">
+    <button class="tab is-active" type="button" role="tab" data-tab="t-up">Sắp tới & đang thuê <small>{{ groups.upcoming|length }}</small></button>
+    <button class="tab" type="button" role="tab" data-tab="t-past">Đã hoàn tất <small>{{ groups.past|length }}</small></button>
+    <button class="tab" type="button" role="tab" data-tab="t-cancel">Đã hủy <small>{{ groups.cancelled|length }}</small></button>
+  </div>
+  {% for key, panel, empty in [("upcoming", "t-up", "Chưa có chuyến thuê nào sắp tới."), ("past", "t-past", "Bạn chưa hoàn tất chuyến thuê nào."), ("cancelled", "t-cancel", "Không có đơn bị hủy.")] %}
+  {% set first_tab = loop.first %}
+  <div class="trips" data-tabpanel="{{ panel }}" {{ "hidden" if not first_tab }}>
+    {% for b in groups[key] %}{{ trip_card(b) }}{% else %}
+      <div class="empty empty--left">
+        {{ icon("suitcase", 36) }}
+        <h2>{{ empty }}</h2>
+        {% if first_tab %}<p>Đến lúc lên kế hoạch cho chuyến đi tiếp theo và thuê một con máy thật xịn rồi!</p><a class="btn btn--dark" href="/">Bắt đầu tìm kiếm</a>{% endif %}
+      </div>
+    {% endfor %}
+  </div>
+  {% endfor %}
+</div>
+{% endblock %}

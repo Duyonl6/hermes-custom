@@ -1,0 +1,120 @@
+{% extends "base.html" %}
+{% from "partials/icons.html" import icon, star, avatar %}
+{% block title %}Quản lý cho thuê · {{ site_name }}{% endblock %}
+{% block body_class %}page-host{% endblock %}
+{% block content %}
+<div class="wrap page-pad host">
+  <div class="host__head">
+    <h1 class="page-title">Chào {{ user.name }}!</h1>
+    <a class="btn btn--dark" href="/host/listings/new">{{ icon("plus", 16) }} Đăng thiết bị</a>
+  </div>
+
+  <div class="tiles">
+    <div class="tile"><span>Thu nhập tháng này</span><b>{{ month_total | vnd }}</b><small class="muted">sau phí {{ host_fee_pct|int }}%</small></div>
+    <div class="tile {{ 'tile--alert' if pending }}"><span>Yêu cầu chờ duyệt</span><b>{{ pending|length }}</b><small class="muted">tự hết hạn sau 24 giờ</small></div>
+    <div class="tile"><span>Lấp đầy 30 ngày tới</span><b>{{ occupancy }}%</b><small class="muted">số ngày đã có đơn</small></div>
+    <div class="tile"><span>Đánh giá</span><b>{% if review_count %}{{ star(16) }} {{ "%.2f"|format(review_avg) | replace(".", ",") }}{% else %}—{% endif %}</b><small class="muted">{{ review_count }} lượt</small></div>
+  </div>
+
+  <section class="host-sec" id="requests">
+    <h2>Yêu cầu đặt thuê {% if pending %}<span class="dot-badge">{{ pending|length }}</span>{% endif %}</h2>
+    {% for b in pending %}
+    <article class="req">
+      <div class="req__who">{{ avatar(b.renter_name, b.renter_hue, 48) }}<div><b>{{ b.renter_name }}</b><small class="muted">{% if b.renter_verified %}{{ icon("id", 12) }} Đã xác minh CCCD{% else %}Chưa xác minh CCCD{% endif %}</small></div></div>
+      <div class="req__what">
+        <b>{{ b.title }}</b>
+        <p class="muted">{{ date_range(b.start_date, b.end_date) }} · {{ b.days }} ngày · bạn nhận <b>{{ b.host_payout | vnd }}</b></p>
+        {% if b.last_message %}<p class="req__msg">“{{ b.last_message }}”</p>{% endif %}
+      </div>
+      <div class="req__act">
+        <form method="post" action="/host/bookings/{{ b.code }}/accept"><input type="hidden" name="csrf" value="{{ csrf }}"><button class="btn btn--dark btn--sm">Chấp nhận</button></form>
+        <form method="post" action="/host/bookings/{{ b.code }}/decline"><input type="hidden" name="csrf" value="{{ csrf }}"><button class="btn btn--outline btn--sm">Từ chối</button></form>
+        <a class="link-btn small" href="/trips/{{ b.code }}"><u>Chi tiết & nhắn tin</u></a>
+      </div>
+    </article>
+    {% else %}
+    <p class="muted empty-line">{{ icon("check-circle", 20) }} Bạn đã xử lý hết yêu cầu. Tuyệt vời!</p>
+    {% endfor %}
+  </section>
+
+  <div class="host-cols">
+    <section class="host-sec">
+      <h2>Lịch bàn giao sắp tới</h2>
+      {% if upcoming %}
+      <div class="table-wrap">
+        <table class="table table--compact">
+          <thead><tr><th>Thiết bị</th><th>Người thuê</th><th>Ngày</th><th>Trạng thái</th></tr></thead>
+          <tbody>
+            {% for b in upcoming %}
+            {% set st = status_labels[b.effective_status] %}
+            <tr>
+              <td><a href="/trips/{{ b.code }}"><b>{{ b.title[:38] }}{{ "…" if b.title|length > 38 }}</b></a></td>
+              <td>{{ b.renter_name }}</td>
+              <td class="nowrap">{{ date_range(b.start_date, b.end_date) }}</td>
+              <td><span class="pill pill--{{ st[1] }}">{{ st[0] }}</span></td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}<p class="muted">Chưa có lịch bàn giao nào.</p>{% endif %}
+    </section>
+
+    <section class="host-sec">
+      <h2>Thu nhập 6 tháng</h2>
+      <p class="muted small">Tiền thực nhận theo tháng nhận máy (₫)</p>
+      <figure class="earn" aria-label="Biểu đồ cột thu nhập 6 tháng gần nhất">
+        <div class="earn__plot">
+          {% for m in months %}
+          <div class="earn__col" tabindex="0" data-tip="{{ m.label }}: {{ m.total | vnd }}">
+            {% if loop.last %}<span class="earn__val">{{ m.total | short_k if m.total else "0" }}</span>{% endif %}
+            <i style="height:{{ [m.pct, 1]|max }}%"></i>
+            <span class="earn__lbl">{{ m.label }}</span>
+          </div>
+          {% endfor %}
+        </div>
+        <table class="sr-only"><caption>Thu nhập theo tháng</caption><tr>{% for m in months %}<th>{{ m.label }}</th>{% endfor %}</tr><tr>{% for m in months %}<td>{{ m.total | vnd }}</td>{% endfor %}</tr></table>
+      </figure>
+    </section>
+  </div>
+
+  <section class="host-sec" id="listings">
+    <h2>Tin đăng của bạn ({{ listings|length }})</h2>
+    <div class="table-wrap">
+      <table class="table">
+        <thead><tr><th>Thiết bị</th><th>Giá/ngày</th><th>Đánh giá</th><th>30 ngày tới</th><th>Đơn kế tiếp</th><th>Trạng thái</th><th></th></tr></thead>
+        <tbody>
+          {% for l in listings %}
+          <tr class="{{ 'is-off' if not l.active }}">
+            <td><a class="tl" href="/listing/{{ l.id }}"><img src="{{ l.cover }}" alt="" width="56" height="56" loading="lazy"><span><b>{{ l.brand }} {{ l.model }}</b><small class="muted">{{ l.ward | replace("Phường ", "") }}, {{ l.city }}</small></span></a></td>
+            <td class="nowrap">{{ l.price_day | vnd }}</td>
+            <td class="nowrap">{% if l.rating_count %}{{ star(11) }} {{ "%.2f"|format(l.rating_avg) | replace(".", ",") }} ({{ l.rating_count }}){% else %}—{% endif %}</td>
+            <td>{{ l.booked_30 }} ngày</td>
+            <td class="nowrap">{{ l.next_booking | fmt_date("dm") if l.next_booking else "—" }}</td>
+            <td>{% if l.active %}<span class="pill pill--green">Đang hiển thị</span>{% else %}<span class="pill pill--grey">Tạm ẩn</span>{% endif %}</td>
+            <td class="nowrap"><div class="actions">
+              <a class="icon-btn" href="/host/listings/{{ l.id }}/edit" aria-label="Sửa" title="Sửa">{{ icon("edit", 16) }}</a>
+              <form method="post" action="/host/listings/{{ l.id }}/toggle"><input type="hidden" name="csrf" value="{{ csrf }}"><button class="icon-btn" type="submit" aria-label="{{ 'Tạm ẩn' if l.active else 'Hiển thị' }}" title="{{ 'Tạm ẩn' if l.active else 'Hiển thị lại' }}">{{ icon("eye-off" if l.active else "eye", 16) }}</button></form>
+            </div></td>
+          </tr>
+          {% else %}
+          <tr><td colspan="7"><p class="muted">Bạn chưa có tin đăng nào. <a href="/host/listings/new"><u>Đăng thiết bị đầu tiên</u></a></p></td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  {% if recent %}
+  <section class="host-sec">
+    <h2>Hoạt động gần đây</h2>
+    <ul class="activity">
+      {% for b in recent %}
+      {% set st = status_labels[b.effective_status] %}
+      <li><span class="pill pill--{{ st[1] }}">{{ st[0] }}</span> <a href="/trips/{{ b.code }}">{{ b.code }}</a> · {{ b.renter_name }} · {{ b.title[:40] }} · <span class="muted">{{ b.updated_at | time_ago }}</span></li>
+      {% endfor %}
+    </ul>
+  </section>
+  {% endif %}
+</div>
+{% endblock %}
