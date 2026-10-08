@@ -66,6 +66,11 @@ thanh đặt thuê cố định ở đáy màn hình, giống app Airbnb.
 
 ## 3. Chạy local
 
+**Nhanh nhất:** Windows bấm đúp `run.bat`; macOS/Linux chạy `./run.sh`. Script tự tạo `.venv`, cài thư viện
+và mở http://localhost:8010. Yêu cầu Python 3.10+ (Windows: tick "Add python.exe to PATH" khi cài).
+
+Chạy tay:
+
 ```bash
 cd tiem-nha-cam
 python3 -m venv .venv && source .venv/bin/activate

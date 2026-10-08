@@ -4,3 +4,4 @@ jinja2>=3.1
 python-multipart>=0.0.9
 itsdangerous>=2.1
 pillow>=10.0
+tzdata>=2024.1  # bắt buộc trên Windows cho zoneinfo

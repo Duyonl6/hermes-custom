@@ -2,9 +2,9 @@
 from __future__ import annotations
 
 import os
-from datetime import date, datetime
+from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
-from zoneinfo import ZoneInfo
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 BASE_DIR = Path(__file__).resolve().parent
 ROOT_DIR = BASE_DIR.parent
@@ -63,7 +63,11 @@ DEMO_MODE = _bool("DEMO_MODE", True)
 AUTO_SEED = _bool("AUTO_SEED", True)
 SESSION_HTTPS_ONLY = _bool("SESSION_HTTPS_ONLY", False)
 
-TZ = ZoneInfo(os.getenv("TZ_NAME", "Asia/Ho_Chi_Minh"))
+try:
+    TZ = ZoneInfo(os.getenv("TZ_NAME", "Asia/Ho_Chi_Minh"))
+except ZoneInfoNotFoundError:
+    # Windows không có sẵn CSDL múi giờ IANA (cần gói tzdata) → dùng UTC+7 cố định, VN không có giờ mùa hè
+    TZ = timezone(timedelta(hours=7), "ICT")
 
 
 def now() -> datetime:
